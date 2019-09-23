@@ -157,18 +157,27 @@ if v:shell_error == 0
   let g:python3_host_prog = venv_path . '/bin/python'
 else
   let g:venv_path = ''
-  let g:python3_host_prog = '/usr/local/bin/python3'
+  let g:python3_host_prog = '/usr/bin/python3'
 endif
 
 
 map <F2>    :ImportName<CR>
 map <C-F2>  :ImportNameHere<CR>
-map <F3>    :!ctags -R <c-r>=venv_path<cr> . --exclude=node_modules --exclude=static --exclude=env/local/lib64 --exclude=staticfiles --exclude=data --exclude=db --exclude=client --exclude=target_files<CR>
+map <expr> <F3>  ':!ctags -R ' . venv_path . ' --exclude={node_modules,static,env,staticfiles,data,db,client,target_files} . <CR>'
 nnoremap tn :tabnew<bar> :NERDTreeToggle <CR>
 
 map <F4> :!isort %<CR>
 
 nnoremap tc :tabclose<CR>
+
+
+" Moving lines
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+inoremap <A-j> <Esc>:m .+1<CR>==gi
+inoremap <A-k> <Esc>:m .-2<CR>==gi
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
 
 
 "Vim tabs
