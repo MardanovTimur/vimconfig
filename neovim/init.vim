@@ -24,6 +24,8 @@ autocmd Filetype ruby setlocal ts=2 sw=2 expandtab
 autocmd Filetype yaml setlocal ts=2 sw=2 expandtab
 autocmd Filetype javascript setlocal ts=4 sw=4 sts=0 expandtab
 
+set clipboard=unnamed
+
 set smartindent
 set cursorline
 set history=200
@@ -83,13 +85,14 @@ autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in
 
 "Plugins
 call plug#begin('~/.vim/plugged')
-
 Plug 'shougo/echodoc.vim'
 Plug 'scrooloose/nerdcommenter'
-" Plug 'plasticboy/vim-markdown'
+Plug 'iamcco/markdown-preview.nvim', { 'do': { -> mkdp#util#install() } }
+
 "---------=== Code/project navigation ===-------------
 Plug 'scrooloose/nerdtree'           " Project and file navigation
 Plug 'majutsushi/tagbar'             " Class/module browser
+Plug 'Glench/Vim-Jinja2-Syntax' " vim
 "
 ""------------------=== Other ===----------------------
 Plug 'bling/vim-airline'              " Lean & mean status/tabline for vim
@@ -111,6 +114,8 @@ Plug 'tell-k/vim-autopep8'
 
 Plug 'w0rp/ale'  " async
 
+Plug 'kchmck/vim-coffee-script'
+
 "" Turn on jedi
 Plug 'davidhalter/jedi-vim'        " Jedi-vim autocomplete plugin
 Plug 'zchee/deoplete-jedi'
@@ -121,6 +126,8 @@ Plug 'vim-ruby/vim-ruby'
 
 " --- finder---
 Plug 'junegunn/fzf'
+"" Best picker for neovim
+Plug 'srstevenson/vim-picker'
 
 Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 
@@ -148,16 +155,53 @@ filetype plugin on
 filetype plugin indent on
 
 
+" Dynamic environment identation
+let pipenv_venv_path = system('pipenv --venv')
+if v:shell_error == 0
+  let g:venv_path = substitute(pipenv_venv_path, '\n', '', '')
+  let g:python3_host_prog = venv_path . '/bin/python'
+else
+  let g:venv_path = ''
+  let g:python3_host_prog = '/usr/bin/python3'
+endif
+
+let g:python3_host_prog = '/home/timur/tenders/env/bin/python3'
+
+
 map <F2>    :ImportName<CR>
 map <C-F2>  :ImportNameHere<CR>
-map <F3>    :!ctags -R --exclude=node_modules --exclude=static --exclude=staticfiles --exclude=data --exclude=db --exclude=client --exclude=target_files<CR>
 nnoremap tn :tabnew<bar> :NERDTreeToggle <CR>
+
+map <F4> :!isort %<CR>
+
 nnoremap tc :tabclose<CR>
+
+
+" Moving lines
+nnoremap <A-j> :m .+1<CR>==
+nnoremap <A-k> :m .-2<CR>==
+inoremap <A-j> <Esc>:m .+1<CR>==gi
+inoremap <A-k> <Esc>:m .-2<CR>==gi
+vnoremap <A-j> :m '>+1<CR>gv=gv
+vnoremap <A-k> :m '<-2<CR>gv=gv
 
 
 "Vim tabs
 nnoremap gt gT
 nnoremap gy gt
+
+
+""" Vim picker (fzy)
+nmap <unique> <leader>pe <Plug>(PickerEdit)
+nmap <unique> <leader>ps <Plug>(PickerSplit)
+nmap <unique> <leader>pt <Plug>(PickerTabedit)
+nmap <unique> <leader>pv <Plug>(PickerVsplit)
+nmap <unique> <leader>pb <Plug>(PickerBuffer)
+nmap <unique> <leader>p] <Plug>(PickerTag)
+nmap <unique> <leader>pw <Plug>(PickerStag)
+nmap <unique> <leader>po <Plug>(PickerBufferTag)
+nmap <unique> <leader>ph <Plug>(PickerHelp)
+
 
 "Nerd_commenter
 let g:NERDSpaceDelims = 1
@@ -222,8 +266,6 @@ let g:ale_list_window_size = 5
 let g:deoplete#complete_method = "omnifunc"
 let g:deoplete#sources#jedi#python_path = 'python3'
 
-
-"
 " " поддержка virtualenv
 let g:pymode_virtualenv = 1
 let g:virtualenv_directory = $PWD
@@ -241,6 +283,7 @@ let g:SimpylFold_docstring_preview = 1
 let g:pymode_run = 1
 let g:pymode_run_bind = '<leader>e'
 let g:pymode_python = 'python3'
+
 
 "" PEP8 autocorrect
 autocmd FileType python noremap <buffer> <F9> :call Autopep8()<CR>
@@ -270,6 +313,7 @@ let g:jedi#completions_enabled = 1
 " :inoremap <Tab> <C-R>=Tab_Or_Complete()<CR>
 " :set dictionary="/home/timur/vim-words"
 
+
 autocmd FileType python 
 
 let g:echodoc_enable_at_startup = 1
@@ -280,6 +324,19 @@ set backspace=indent,eol,start
 " let $NVIM_TUI_ENABLE_CURSOR_SHAPE = 1
 :set guicursor=
 
+
+"Force this
+" let g:deoplete#sources#jedi#python_path = 'python2'
+" let g:pymode_python = 'python'
+" let g:venv_path='/mnt/sda1/sl/env/'
+" let g:python_host_prog = '/mnt/sda1/sl/env/bin/python'
+" let g:loaded_python3_provider = 0
+" let g:jedi#force_py_version=2
+" let g:jedi#completions_enabled = 1
+let g:venv_path='/home/timur/brobot/env/'
+
+map <expr> <F3>  ':!ctags -R ' . venv_path . ' --exclude={node_modules,static,env,staticfiles,data,db,client,target_files} . <CR>'
+
 if has('python')
 py << EOF
 import os.path
@@ -289,7 +346,9 @@ if 'VIRTUAL_ENV' in os.environ:
     project_base_dir = os.environ['VIRTUAL_ENV']
     sys.path.insert(0, project_base_dir)
     activate_this = os.path.join(project_base_dir, 'bin/activate_this.py')
-    execfile(activate_this, dict(__file__=activate_this))
+    try:
+        execfile(activate_this, dict(__file__=activate_this))
+    except:
+        pass
 EOF
 endif
-
